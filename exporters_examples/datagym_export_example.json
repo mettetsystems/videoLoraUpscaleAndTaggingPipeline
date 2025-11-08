@@ -1,0 +1,9 @@
+[
+  {
+    "image": "images/sample/frame_000001.jpg",
+    "labels": [
+      "outdoor",
+      "road"
+    ]
+  }
+]

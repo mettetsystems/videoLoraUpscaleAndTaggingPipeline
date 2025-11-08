@@ -1,0 +1,39 @@
+paths:
+  input_videos: "D:/videoLoraGenerationPipeline/data/review"
+  work_root: "./data"
+  ffmpeg_bin: "ffmpeg"
+
+video_norm:
+  width: 1280
+  height: 720
+  fps: 16
+  pix_fmt: "yuv420p"
+  crf: 15
+  preset: "slow"
+
+frame_extract:
+  every_nth_frame: 1
+  jpeg_q: 96
+
+wd14:
+  model_dir: "./models/wd14"
+  threshold_general: 0.35
+  threshold_character: 0.6
+  topk: 64
+  batch_size: 8
+
+merge:
+  min_confidence: 0.35
+  prefer_wd14_synonyms: true
+
+clean:
+  remove_duplicates: true
+  lowercase: true
+  replace_underscores: true
+  strip_nsfb_tags: true
+  max_tags: 64
+
+musubi:
+  dataset_root: "./data/musubi_tuner_dataset"
+  pack_mode: "video"
+  caption_prefix: ""
