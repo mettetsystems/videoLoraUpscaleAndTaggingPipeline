@@ -30,8 +30,10 @@ def paths(cfg: Dict[str, Any]) -> Dict[str, Path]:
         "normalized_videos": ensure_dir(work_root / "normalized_videos"),
         "frames_root": ensure_dir(work_root / "frames"),
         "tags_raw": ensure_dir(work_root / "tags_raw"),
-        "tags_merged": work_root / "tags_merged.jsonl",
+        "tags_merged_dir": ensure_dir(work_root / "tags_merged"),
+        "tags_merged": ensure_dir(work_root / "tags_merged") / "merged.jsonl",
         "captions_clean": work_root / "captions_clean.jsonl",
+
         "musubi_root": ensure_dir(Path(cfg["musubi"]["dataset_root"]).resolve()),
     }
     return p
