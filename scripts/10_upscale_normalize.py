@@ -1,31 +1,48 @@
-# -*- coding: utf-8 -*-
-"""
-Normalize all source videos into a consistent size/fps/pixfmt for WAN 2.1 LoRA training.
-
-- Defaults (720p, 16 fps) are tuned for an RTX 4090 but adjustable via config.yaml.
-- Produces visually high quality H.264 MP4s (CRF 15, preset 'slow'), no audio.
-"""
-
 from pathlib import Path
-from scripts.utils.paths import load_config, paths
-from scripts.utils.ffmpeg import norm_video
+import subprocess, yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+CFG  = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+
+IN_DIR  = ROOT / CFG["paths"].get("split_clips_dir", "data/clips_5s")
+OUT_DIR = ROOT / CFG["paths"].get("upscaled_256_dir", "data/upscaled_256")
+
+FPS  = int(CFG.get("video", {}).get("fps", 60))     # <- 60 fps
+SIZE = int(CFG.get("video", {}).get("upscale_size", 256))
+
+# Keep aspect ratio, then pad to 256x256; output is locked to 60 fps.
+VF = (
+    f"fps={FPS},"
+    f"scale={SIZE}:{SIZE}:flags=lanczos:force_original_aspect_ratio=decrease,"
+    f"pad={SIZE}:{SIZE}:(ow-iw)/2:(oh-ih)/2:black"
+)
+
+def transcode(src: Path, dst: Path) -> None:
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+        "-i", str(src),
+        "-an",
+        "-vf", VF,
+        "-r", str(FPS),                         # enforce 60 fps timebase on output
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+        "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+        str(dst),
+    ]
+    subprocess.run(cmd, check=True)
 
 def main():
-    cfg = load_config()
-    p = paths(cfg)
-    ff = cfg["paths"]["ffmpeg_bin"]
-    target = (cfg["video_norm"]["width"], cfg["video_norm"]["height"])
-    fps = int(cfg["video_norm"]["fps"])
-    pix_fmt = cfg["video_norm"]["pix_fmt"]
-    crf = int(cfg["video_norm"]["crf"])
-    preset = cfg["video_norm"]["preset"]
-
-    for src in Path(p["input_videos"]).glob("*.*"):
-        if src.suffix.lower() not in (".mp4", ".mov", ".mkv", ".avi", ".webm"):
-            continue
-        dst = p["normalized_videos"] / (src.stem + "_norm.mp4")
-        print(f"[normalize] {src.name} -> {dst.name}")
-        norm_video(ff, src, dst, size=target, fps=fps, pix_fmt=pix_fmt, crf=crf, preset=preset)
+    if not IN_DIR.exists():
+        print(f"[upscale] Input folder not found: {IN_DIR}")
+        return 2
+    for video_dir in sorted([p for p in IN_DIR.iterdir() if p.is_dir()]):
+        out_dir = OUT_DIR / video_dir.name
+        for clip in sorted(video_dir.glob("clip_*.mp4")):
+            out_path = out_dir / clip.name
+            print(f"[upscale] {clip} → {out_path}")
+            transcode(clip, out_path)
+    print("[upscale] Done.")
 
 if __name__ == "__main__":
     main()
