@@ -3,13 +3,16 @@ paths:
   work_root: "./data"
   ffmpeg_bin: "ffmpeg"
 
-video_norm:
-  width: 1280
-  height: 720
-  fps: 16
-  pix_fmt: "yuv420p"
-  crf: 15
-  preset: "slow"
+video:
+  # Target normalization parameters for the pipeline
+  fps: 60                  # global frame rate for split + upscale
+  upscale_size: 256        # output resolution for WAN training
+  clip_max_seconds: 5      # max segment duration before upscaling
+  split_fast_copy: false   # false = re-encode + clean keyframes, true = faster, copy-only
+  pix_fmt: "yuv420p"       # training-safe pixel format
+  crf: 18                  # visually lossless quality for dataset use
+  preset: "veryfast"       # balance speed and quality for preprocessing
+
 
 frame_extract:
   every_nth_frame: 1
